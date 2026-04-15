@@ -1,0 +1,42 @@
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: tecnofit
+      DB_USER: tecnofit
+      DB_PASS: secret
+      APP_ENV: development
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootsecret
+      MYSQL_DATABASE: tecnofit
+      MYSQL_USER: tecnofit
+      MYSQL_PASSWORD: secret
+    volumes:
+      # O MySQL executa automaticamente todo .sql em docker-entrypoint-initdb.d/
+      # na primeira inicialização (quando o volume ainda está vazio).
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "tecnofit", "-psecret"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  mysql_data:
